@@ -1,0 +1,103 @@
+﻿---
+title: "modeling_cluster"
+output: word_document
+---
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(gridExtra)
+library(caret)
+library(NbClust)
+# 본인 컴퓨터 디렉토리에 맞게
+setwd("c:\\Users\\samsung\\Desktop\\LP")
+
+# 데이터 불러오기
+pr<-read_csv("Product.csv")
+# master1은 대분류 재분류 한것
+ma<-read_csv("master1.csv")
+
+# 변수명 소문자 바꾸기
+names(pr)<-tolower(names(pr))
+names(ma)<-tolower(names(ma))
+
+# 고객 아이디 정수화
+pr$clnt_id<-as.integer(pr$clnt_id)
+# 코드 값 모두 정수화
+ma$pd_c<-as.integer(ma$pd_c)
+pr$pd_c<-as.integer(pr$pd_c)
+ma$pd_c<-as.integer(ma$pd_c)
+
+# hits_seq 1 삭제
+pr1<-pr%>%filter(hits_seq>1)
+
+# pr1과 ma join
+pr1ma<-left_join(pr1,ma)
+
+# 6개월동안 한 고객당 해당 상품군 몇번 구매
+freq_pr<-pr1ma %>% group_by(clnt_id, clac2_nm)%>%summarise(freq_n=n())
+
+# 중분류별 빈도 평균
+freq<-freq_pr%>%group_by(clac2_nm)%>%summarise(freq_mean=mean(freq_n,na.rm=T))%>%arrange(desc(freq_mean))
+
+# 상품군(중분류)별 수량, hit_seq, 금액 평균 구하기
+df<-pr1ma%>%select(hits_seq, pd_buy_am, pd_buy_ct, clac2_nm)%>%group_by(clac2_nm)%>%summarise(mean_hit=mean(hits_seq,na.rm=T),mean_am=mean(pd_buy_am,na.rm=T), mean_ct=mean(pd_buy_ct,na.rm=T))
+summary(df)
+
+# 빈도 수 붙이기
+df<-left_join(df,freq)
+df<-df%>%filter(!is.na(clac2_nm))
+summary(df)
+
+# 모델링 위해 변수 표준화
+tr_df <- scale(df[,-1])
+
+set.seed(425)
+# 군집 수 결정
+nc=NbClust(tr_df,min.nc=2,max.nc=10,method="kmeans")
+
+par(mfrow=c(1,1))
+barplot(table(nc$Best.n[1,]),xlab="Number of Clusters",ylab="Number of Criteria",
+        main="Number of Clusters Chosen by 26 criteria")
+# 군집수 3개로 결정
+
+
+# k-means 클러스터링
+km_df <- kmeans(tr_df,3, nstart=8)
+d<-df
+d$cluster <- km_df$cluster # cluster 군집 생성
+
+pca <- prcomp(d[,-1], scale=T)
+pca2 <- data.frame(pca$x)
+d$X <- pca2$PC1
+d$Y <- pca2$PC2
+d$cluster <- as.factor(km_df$cluster) 
+summary(d)
+
+# 클러스터링 그래프
+ggplot(d, aes(x = X, y = Y))+geom_point(aes(color=cluster, shape=cluster))
+
+c1<-d%>%filter(cluster==1)%>%select(clac2_nm)
+c2<-d%>%filter(cluster==2)%>%select(clac2_nm)
+c3<-d%>%filter(cluster==3)%>%select(clac2_nm)
+c1
+c2
+c3
+#Cluster means:
+#    mean_hit    mean_am     mean_ct  freq_mean
+#1 -0.1913352 -0.3249665 10.67157104  0.1722798
+#(조금 살펴보는 편, 가격대는 가장 낮다, 한번에 많이 사고 빈도도 조금 높은편)
+#(커튼/ 블라인드류 --> 업자들일것이라고 추측)
+
+#2  0.9289687 -0.3079959 -0.08990036  0.9986784
+#(고민 가장 많고 가격대도 낮은편, 한번에 적게사며 빈도는 가장 많은 편)
+#(주로 의류용품 45가지)
+
+#3 -0.5074666  0.1729852 -0.08080555 -0.5501562
+#(살것 정해져있는편, 가격대는 높은편, 한번에 적게사며 빈도도 낮다)
+#(잡화, 전자제품, 식품 등, 82가지)
+
+# cluster나눈것 저장
+write_csv(d%>%select(clac2_nm,cluster),"cluster.csv")
+```
+
