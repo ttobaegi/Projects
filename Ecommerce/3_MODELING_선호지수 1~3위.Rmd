@@ -1,0 +1,10 @@
+```{r}
+library(tidyverse)
+setwd("c:\\Users\\samsung\\Desktop\\LP")
+ind<-read_csv("indicator1.csv")
+# 각 고객별 선호지수 1~3위를 뽑아 총 건수를 셈 
+a<-ind%>%group_by(clnt_id)%>%mutate(rank=rank(desc(indicator)))%>%filter(rank<=3)%>%group_by(clac2_nm)%>%summarise(n=n())
+a%>%arrange(desc(n))
+# 선호지수가 높은 항목은 주로 의류상품임을 볼 수 있다.
+```
+
