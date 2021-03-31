@@ -1,0 +1,283 @@
+---
+title: "분석1"
+output: word_document
+---
+
+```{r}
+library(tidyverse)
+#install.packages("gridExtra")
+library(gridExtra)
+
+# 분석용 데이터 불러오기
+setwd("c:\\Users\\samsung\\Desktop\\LP")
+df<-read_csv("trend_df.csv",guess_max=76234)
+
+# 날짜별 총매출과 건수 변수 추출
+df1<-df%>%select(date, pd_buy_am, pd_buy_ct, mean_temp, rain, dust)%>%
+mutate(revenue=pd_buy_am*pd_buy_ct)%>%group_by(date)%>%
+summarise(tot_rev=sum(revenue),freq=n(),temp=mean(mean_temp),
+rain=mean(rain),dust=mean(dust))
+
+# 날짜별, 상품군별 총매출과 건수 변수 추출
+df2<-df%>%select(date, clac1_nm, pd_buy_am, pd_buy_ct, mean_temp, rain, dust)%>%
+mutate(revenue=pd_buy_am*pd_buy_ct)%>%group_by(date, clac1_nm)%>%
+summarise(tot_rev=sum(revenue),freq=n(),temp=mean(mean_temp),
+rain=mean(rain),dust=mean(dust))
+
+# 기온~매출(전체)
+a<-ggplot(df1, aes(temp, tot_rev))+geom_point()+ggtitle("기온-매출 그래프")
+# 기온~건수(전체)
+b<-ggplot(df1, aes(temp, freq))+geom_point()+ggtitle("기온-건수 그래프")
+# 강수~매출(전체)
+c<-ggplot(df1, aes(rain, tot_rev))+geom_point()+ggtitle("강수-매출 그래프")
+# 강수~건수(전체)
+d<-ggplot(df1, aes(rain, freq))+geom_point()+ggtitle("강수-건수 그래프")
+# 미세먼지~매출(전체)
+e<-ggplot(df1, aes(dust, tot_rev))+geom_point()+ggtitle("미세먼지-매출 그래프")
+# 미세먼지~건수(전체)
+f<-ggplot(df1, aes(dust, freq))+geom_point()+ggtitle("미세먼지-건수 그래프")
+grid.arrange(a,b,c,d,e,f, ncol=2)
+a;b;c;d;e;f
+
+
+
+# 기온~매출(상품군별)
+a<-ggplot(df2, aes(temp, tot_rev))+geom_point(aes(color=clac1_nm),alpha=1/3)+
+geom_line(aes(color=clac1_nm),alpha=1/3)+ggtitle("기온-매출 그래프")+theme(legend.position = "none")+
+directlabels::geom_dl(aes(label = clac1_nm,color=clac1_nm), method = "smart.grid")
+# 기온~건수(상품군별)
+b<-ggplot(df2, aes(temp, freq))+geom_point(aes(color=clac1_nm),alpha=1/3)+
+geom_line(aes(color=clac1_nm),alpha=1/3)+ggtitle("기온-건수 그래프")+theme(legend.position = "none")+
+directlabels::geom_dl(aes(label = clac1_nm,color=clac1_nm), method = "smart.grid")
+# 강수~매출(상품군별)
+c<-ggplot(df2, aes(rain, tot_rev))+geom_point(aes(color=clac1_nm),alpha=1/3)+
+geom_line(aes(color=clac1_nm),alpha=1/3)+ggtitle("강수-매출 그래프")+theme(legend.position = "none")+
+directlabels::geom_dl(aes(label = clac1_nm,color=clac1_nm), method = "smart.grid")
+# 강수~건수(상품군별)
+d<-ggplot(df2, aes(rain, freq))+geom_point(aes(color=clac1_nm),alpha=1/3)+
+geom_line(aes(color=clac1_nm),alpha=1/3)+ggtitle("강수-건수 그래프")+theme(legend.position = "none")+
+directlabels::geom_dl(aes(label = clac1_nm,color=clac1_nm), method = "smart.grid")
+# 미세먼지~매출(상품군별)
+e<-ggplot(df2, aes(dust, tot_rev))+geom_point(aes(color=clac1_nm),alpha=1/3)+
+geom_line(aes(color=clac1_nm),alpha=1/3)+ggtitle("미세먼지-매출 그래프")+theme(legend.position = "none")+
+directlabels::geom_dl(aes(label = clac1_nm,color=clac1_nm), method = "smart.grid")
+# 미세먼지~건수(상품군별)
+f<-ggplot(df2, aes(dust, freq))+geom_point(aes(color=clac1_nm),alpha=1/3)+
+geom_line(aes(color=clac1_nm),alpha=1/3)+ggtitle("미세먼지-건수 그래프")+theme(legend.position = "none")+
+directlabels::geom_dl(aes(label = clac1_nm,color=clac1_nm), method = "smart.grid")
+grid.arrange(a,b,c,d,e,f, ncol=2)
+a;b;c;d;e;f
+
+# 상관관계 확인
+# 대분류 숫자로 코드화
+code_index<-df2%>%ungroup()%>%count(clac1_nm)%>%filter(!is.na(clac1_nm))%>%mutate(code=1:37)%>%select(clac1_nm,code)
+df2<-left_join(df2,code_index)
+
+# 기온~매출
+r_squared="";  p_value="";       
+for(i in 1:37){
+ df3<-df2%>%filter(code==i)
+ r_squared[i]<-summary(lm(temp~tot_rev,data=df3))$r.squared
+ p_value[i]<-summary(lm(temp~tot_rev,data=df3))$coefficients[2,4]
+}
+re_t_r<-left_join(as.tibble(cbind(r_squared,p_value))%>%mutate(code=1:37)%>%filter(p_value<=0.1),code_index)%>%select(-code)
+re_t_r
+
+# 강수량~매출
+r_squared="";  p_value="";       
+for(i in 1:37){
+ df3<-df2%>%filter(code==i)
+ r_squared[i]<-summary(lm(rain~tot_rev,data=df3))$r.squared
+ p_value[i]<-summary(lm(rain~tot_rev,data=df3))$coefficients[2,4]
+}
+re_r_r<-left_join(as.tibble(cbind(r_squared,p_value))%>%mutate(code=1:37)%>%filter(p_value<=0.1),code_index)%>%select(-code)
+re_r_r
+
+# 미세먼지~매출
+r_squared="";  p_value="";       
+for(i in 1:37){
+ df3<-df2%>%filter(code==i)
+ r_squared[i]<-summary(lm(dust~tot_rev,data=df3))$r.squared
+ p_value[i]<-summary(lm(dust~tot_rev,data=df3))$coefficients[2,4]
+}
+re_d_r<-left_join(as.tibble(cbind(r_squared,p_value))%>%mutate(code=1:37)%>%filter(p_value<=0.1),code_index)%>%select(-code)
+re_d_r
+
+# 기온~건수
+r_squared="";  p_value="";       
+for(i in 1:37){
+ df3<-df2%>%filter(code==i)
+ r_squared[i]<-summary(lm(temp~freq,data=df3))$r.squared
+ p_value[i]<-summary(lm(temp~freq,data=df3))$coefficients[2,4]
+}
+re_t_f<-left_join(as.tibble(cbind(r_squared,p_value))%>%mutate(code=1:37)%>%filter(p_value<=0.1),code_index)%>%select(-code)
+re_t_f
+
+# 강수량~건수
+r_squared="";  p_value="";       
+for(i in 1:37){
+ df3<-df2%>%filter(code==i)
+ r_squared[i]<-summary(lm(rain~freq,data=df3))$r.squared
+ p_value[i]<-summary(lm(rain~freq,data=df3))$coefficients[2,4]
+}
+re_r_f<-left_join(as.tibble(cbind(r_squared,p_value))%>%mutate(code=1:37)%>%filter(p_value<=0.1),code_index)%>%select(-code)
+re_r_f
+
+# 미세먼지~건수
+r_squared="";  p_value="";       
+for(i in 1:37){
+ df3<-df2%>%filter(code==i)
+ r_squared[i]<-summary(lm(dust~freq,data=df3))$r.squared
+ p_value[i]<-summary(lm(dust~freq,data=df3))$coefficients[2,4]
+}
+re_d_f<-left_join(as.tibble(cbind(r_squared,p_value))%>%mutate(code=1:37)%>%filter(p_value<=0.1),code_index)%>%select(-code)
+re_d_f
+
+# 상관관계가 있는 품목만 뽑아서 그래프 그림
+# 기온~매출 ("가구", "건강식품", "냉장식품", "문구/사무용품","식기/조리기구","영상/음향가전","청소/세탁/욕실용품","출산/육아용품","침구/수예","컴퓨터","패션잡화")
+df3<-df2%>%filter(clac1_nm %in% c("가구", "건강식품", "냉장식품", "문구/사무용품","식기/조리기구","영상/음향가전","청소/세탁/욕실용품","출산/육아용품","침구/수예","컴퓨터","패션잡화"))
+a<-ggplot(df3, aes(temp, tot_rev))+geom_point(aes(color=clac1_nm),alpha=1/3)+
+geom_line(aes(color=clac1_nm),alpha=1/3)+ggtitle("기온-매출 그래프")+theme(legend.position = "none")+
+directlabels::geom_dl(aes(label = clac1_nm,color=clac1_nm), method = "smart.grid")
+
+# 강수량~매출 ("계절가전","문구/사무용품","세제/위생","아웃도어/레저","주방잡화","헬스/피트니스")
+df3<-df2%>%filter(clac1_nm %in% c("계절가전","문구/사무용품","세제/위생","아웃도어/레저","주방잡화","헬스/피트니스"))
+c<-ggplot(df3, aes(rain, tot_rev))+geom_point(aes(color=clac1_nm),alpha=1/3)+
+geom_line(aes(color=clac1_nm),alpha=1/3)+ggtitle("강수-매출 그래프")+theme(legend.position = "none")+
+directlabels::geom_dl(aes(label = clac1_nm,color=clac1_nm), method = "smart.grid")
+
+# 미세먼지~매출 ("과일","속옷/양말/홈웨어","여성의류","완구","축산물","출산/육아용품","침구/수예","패션잡화","퍼스널케어")
+df3<-df2%>%filter(clac1_nm %in% c("과일","속옷/양말/홈웨어","여성의류","완구","축산물","출산/육아용품","침구/수예","패션잡화","퍼스널케어"))
+e<-ggplot(df3, aes(dust, tot_rev))+geom_point(aes(color=clac1_nm),alpha=1/3)+
+geom_line(aes(color=clac1_nm),alpha=1/3)+ggtitle("미세먼지-매출 그래프")+theme(legend.position = "none")+
+directlabels::geom_dl(aes(label = clac1_nm,color=clac1_nm), method = "smart.grid")
+
+# 기온~건수 ("구기/필드스포츠", "속옷/양말/홈웨어", "식기/조리기구","아웃도어/레저","여성의류","패션잡화")
+df3<-df2%>%filter(clac1_nm %in% c("구기/필드스포츠", "속옷/양말/홈웨어", "식기/조리기구","아웃도어/레저","여성의류","패션잡화"))
+b<-ggplot(df3, aes(temp, freq))+geom_point(aes(color=clac1_nm),alpha=1/3)+
+geom_line(aes(color=clac1_nm),alpha=1/3)+ggtitle("기온-건수 그래프")+theme(legend.position = "none")+
+directlabels::geom_dl(aes(label = clac1_nm,color=clac1_nm), method = "smart.grid")
+
+# 강수량~건수 ("가구","냉장식품","모바일","식기/조리기구","아웃도어/레저")
+df3<-df2%>%filter(clac1_nm %in% c("가구","냉장식품","모바일","식기/조리기구","아웃도어/레저"))
+d<-ggplot(df3, aes(rain, freq))+geom_point(aes(color=clac1_nm),alpha=1/3)+
+geom_line(aes(color=clac1_nm),alpha=1/3)+ggtitle("강수-건수 그래프")+theme(legend.position = "none")+
+directlabels::geom_dl(aes(label = clac1_nm,color=clac1_nm), method = "smart.grid")
+
+# 미세먼지~건수 ("가구","냉장/세탁가전","문구/사무용품","식기/조리기구","완구","출산/육아용품")
+df3<-df2%>%filter(clac1_nm %in% c("가구","냉장/세탁가전","문구/사무용품","식기/조리기구","완구","출산/육아용품"))
+f<-ggplot(df3, aes(dust, freq))+geom_point(aes(color=clac1_nm),alpha=1/3)+
+geom_line(aes(color=clac1_nm),alpha=1/3)+ggtitle("미세먼지-건수 그래프")+theme(legend.position = "none")+
+directlabels::geom_dl(aes(label = clac1_nm,color=clac1_nm), method = "smart.grid")
+grid.arrange(a,b,c,d,e,f, ncol=2)
+
+# 고객 매출액 별 그룹화
+cu_seg <-
+  df %>%select(clnt_id, pd_buy_am,pd_buy_ct)%>%
+  group_by(clnt_id) %>% summarise(sum_am=sum(pd_buy_am*pd_buy_ct))
+summary(cu_seg)
+cu_seg$cu_code <- 
+  cut (cu_seg$sum_am, 
+        quantile(cu_seg$sum_am, na.rm=T),labels = c(1,2,3,4))
+
+# 각 고객 그룹별 summary
+summary(cu_seg%>%filter(cu_code==1))
+summary(cu_seg%>%filter(cu_code==2))
+summary(cu_seg%>%filter(cu_code==3))
+summary(cu_seg%>%filter(cu_code==4))
+
+# 고객 그룹이 포함된 분석을 위한 최종 데이터
+df3<-df%>%select(clnt_id, date, clac1_nm, pd_buy_am, pd_buy_ct, mean_temp, rain, dust)%>%
+left_join(cu_seg%>%select(clnt_id, cu_code))%>%
+mutate(revenue=pd_buy_am*pd_buy_ct)%>%group_by(date, clac1_nm,cu_code)%>%
+summarise(tot_rev=sum(revenue),freq=n(),temp=mean(mean_temp),
+rain=mean(rain),dust=mean(dust))
+
+# 고객 그룹별 상관관계 확인
+# 대분류 숫자로 코드화
+code_index<-df3%>%ungroup()%>%count(clac1_nm)%>%filter(!is.na(clac1_nm))%>%mutate(code=1:37)%>%select(clac1_nm,code)
+df3<-left_join(df3,code_index)
+
+# 기온~매출
+for(j in 1:4){
+  print(paste("고객그룹 : ",j, sep=""))
+  r_squared="";  p_value=""; 
+  for(i in 1:37){
+    df4<-df3%>%filter(cu_code==j,code==i)
+    r_squared[i]<-summary(lm(temp~tot_rev,data=df4))$r.squared
+    p_value[i]<-summary(lm(temp~tot_rev,data=df4))$coefficients[2,4]
+  }
+  re_t_r<-left_join(as.tibble(cbind(r_squared,p_value))%>%mutate(code=1:37)%>%filter(p_value<=0.1),code_index)%>%select(-code)
+  print(re_t_r)
+}
+
+# 강수량~매출
+for(j in 1:4){
+  print(paste("고객그룹 : ",j, sep=""))
+  r_squared="";  p_value=""; 
+  for(i in 1:37){
+    df4<-df3%>%filter(cu_code==j,code==i)
+    r_squared[i]<-summary(lm(rain~tot_rev,data=df4))$r.squared
+    p_value[i]<-summary(lm(rain~tot_rev,data=df4))$coefficients[2,4]
+  }
+  re_r_r<-left_join(as.tibble(cbind(r_squared,p_value))%>%mutate(code=1:37)%>%filter(p_value<=0.1),code_index)%>%select(-code)
+  print(re_r_r)
+}
+
+# 미세먼지~매출
+for(j in 1:4){
+  print(paste("고객그룹 : ",j, sep=""))
+  r_squared="";  p_value=""; 
+  for(i in 1:37){
+    df4<-df3%>%filter(cu_code==j,code==i)
+    r_squared[i]<-summary(lm(dust~tot_rev,data=df4))$r.squared
+    p_value[i]<-summary(lm(dust~tot_rev,data=df4))$coefficients[2,4]
+  }
+  re_d_r<-left_join(as.tibble(cbind(r_squared,p_value))%>%mutate(code=1:37)%>%filter(p_value<=0.1),code_index)%>%select(-code)
+  print(re_d_r)
+}
+
+# 기온~건수
+for(j in 1:4){
+  print(paste("고객그룹 : ",j, sep=""))
+  r_squared="";  p_value=""; 
+  for(i in 1:37){
+    df4<-df3%>%filter(cu_code==j,code==i)
+    r_squared[i]<-summary(lm(temp~freq,data=df4))$r.squared
+    p_value[i]<-summary(lm(temp~freq,data=df4))$coefficients[2,4]
+  }
+  re_t_f<-left_join(as.tibble(cbind(r_squared,p_value))%>%mutate(code=1:37)%>%filter(p_value<=0.1),code_index)%>%select(-code)
+  print(re_t_f)
+}
+
+# 강수량~건수
+for(j in 1:4){
+  print(paste("고객그룹 : ",j, sep=""))
+  r_squared="";  p_value=""; 
+  for(i in 1:37){
+    df4<-df3%>%filter(cu_code==j,code==i)
+    r_squared[i]<-summary(lm(rain~freq,data=df4))$r.squared
+    p_value[i]<-summary(lm(rain~freq,data=df4))$coefficients[2,4]
+  }
+  re_r_f<-left_join(as.tibble(cbind(r_squared,p_value))%>%mutate(code=1:37)%>%filter(p_value<=0.1),code_index)%>%select(-code)
+  print(re_r_f)
+}
+
+# 미세먼지~건수
+for(j in 1:4){
+  print(paste("고객그룹 : ",j, sep=""))
+  r_squared="";  p_value=""; 
+  for(i in 1:37){
+    df4<-df3%>%filter(cu_code==j,code==i)
+    r_squared[i]<-summary(lm(dust~freq,data=df4))$r.squared
+    p_value[i]<-summary(lm(dust~freq,data=df4))$coefficients[2,4]
+  }
+  re_d_f<-left_join(as.tibble(cbind(r_squared,p_value))%>%mutate(code=1:37)%>%filter(p_value<=0.1),code_index)%>%select(-code)
+  print(re_d_f)
+}
+
+
+
+
+```
+
