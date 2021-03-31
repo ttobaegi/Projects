@@ -1,0 +1,138 @@
+---
+title: "juyoung_1"
+output: word_document
+---
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(gridExtra)
+setwd("c:\\Users\\samsung\\Desktop\\LP")
+# 데이터 불러오기
+pr<-read_csv("Product.csv")
+cu<-read_csv("Custom.csv")
+se1<-read_csv("Search1.csv")
+se2<-read_csv("Search2.csv")
+ma<-read_csv("Master.csv")
+ses<-read_csv("Session.csv")
+
+# 변수명 소문자 바꾸기
+names(pr)<-tolower(names(pr))
+names(cu)<-tolower(names(cu))
+names(se1)<-tolower(names(se1))
+names(se2)<-tolower(names(se2))
+names(ses)<-tolower(names(ses))
+names(ma)<-tolower(names(ma))
+
+
+# 고객 아이디 정수화
+pr$clnt_id<-as.integer(pr$clnt_id)
+# 코드 값 모두 정수화
+ma$pd_c<-as.integer(ma$pd_c)
+cu$clnt_id<-as.integer(cu$clnt_id)
+se1$sess_id<-as.integer(se1$sess_id)
+ses$sess_id<-as.integer(ses$sess_id)
+pr$pd_c<-as.integer(pr$pd_c)
+ma$pd_c<-as.integer(ma$pd_c)
+pr$sess_id<-as.integer(pr$sess_id)
+
+# 범주화
+sm<-left_join(left_join(pr, ses), ma)
+sm$clac2_nm<-factor(sm$clac2_nm)
+
+# 상품군별 평균 hits_seq 차이
+sm%>%group_by(clac2_nm)%>%summarise(mean_hits_seq=mean(hits_seq, na.rm=T))%>%ggplot(aes(clac2_nm))+geom_bar(aes(weight=mean_hits_seq))
+# 차이가 존재한다. mean_hits_seq가 90 이상인 항목을 살펴보자.
+head(sm%>%group_by(clac2_nm)%>%summarise(mean_hits_seq=mean(hits_seq, na.rm=T))%>%filter(mean_hits_seq>=90)%>%arrange(desc(mean_hits_seq)))
+# 주로 의류나 패션 잡화의 경우 mean_hits_seq가 높은데, 이는 사람들이 의류를 살때 많이 고민하고 산다는 점을 알려준다. 특히 성인 의류보다 아동의류를 고를 때 더 고민을 함을 볼 수 있다.
+
+# mean_hits_seq가 40이하인 항목을 살펴보자
+head(sm%>%group_by(clac2_nm)%>%summarise(mean_hits_seq=mean(hits_seq, na.rm=T))%>%filter(mean_hits_seq<90)%>%arrange(mean_hits_seq))
+# 주로 상품권이나 반찬, 생수, 음료 등으로 오랫 동안 고를 필요가 없는 경우 hits_seq평균이 낮다. 또한 전자기기의 경우에도 일반적으로 충분히 검색 후 구매하기 때문에 hits_seq가 낮은 편이다.
+# 남성의류와 여성의류는 hit_seq평균이 낮은편에 속해있는데 하위 카테고리(여성 상의 등)로 분류되지 않고 이 안에 있는 제품이 무엇인지 살펴보았다.
+ma%>%filter(clac2_nm=="남성의류")%>%select(pd_nm)
+ma%>%filter(clac2_nm=="여성의류")%>%select(pd_nm)
+# 둘다 row가 적고 바디케어 용품이 남성의류나 여성의류로 잘못 분류되어 있음을 볼 수 있다.
+# 중분류 카테고리의 남성의류와 여성의류는 재분류 할 필요가 있다.
+
+# 상품군별로 sess_seq차이 존재
+sm%>%group_by(clac2_nm)%>%summarise(mean_sess_seq=mean(sess_seq, na.rm=T))%>%ggplot(aes(clac2_nm))+geom_bar(aes(weight=mean_sess_seq))
+# sess_seq 또한 상품별로 차이가 존재한다. 특히 sess_seq의 평균이 500에 가까운 상품군이 있다. 하나씩 확인해보자.
+# mean_sess_seq가 200을 넘는 경우
+head(sm%>%group_by(clac2_nm)%>%summarise(mean_sess_seq=mean(sess_seq, na.rm=T))%>%filter(mean_sess_seq>200)%>%arrange(desc(mean_sess_seq)))
+# mean_sess_seq가 가장 높은 상품군은 아웃도어류이고 대부분의 의류 상품이 mean_sess_seq가 높다.
+
+# mean_sess_seq가 100이하인 경우
+head(sm%>%group_by(clac2_nm)%>%summarise(mean_sess_seq=mean(sess_seq, na.rm=T))%>%filter(mean_sess_seq<100)%>%arrange(mean_sess_seq))
+
+# 아웃도어/ 레저의 경우 mean_hits_seq는 낮은데 mean_sess_seq는 높다. 소매업자들이 사는 경우라 추측이 되어 확인해 보았다.
+head(sm%>%filter(clac2_nm=="아웃도어/레저"))
+# 확인결과 보석이나 액세서리 용품이 잘 못 분류되어 있음을 확인 할 수 있다.
+
+# 남성의류, 여성의류, 아웃도어/ 레저 같이 건수가 적은 경우는 대부분 잘 못 분류되어 있다 가정하고 이를 확인해 보았다.
+head(ma%>%count(clac2_nm)%>%arrange(n))
+head(ma%>%filter(clac2_nm %in% c("속옷/양말/홈웨어", "스포츠패션", "패션잡화")))
+# count가 10 이하인 6가지 항목 모두 분류가 잘 못 되어 있음 을 볼 수 있다. 
+# 전처리 시 상품 분류 데이터에서 이들에 대한 재분류가 필요하다.
+
+# 평균 hits_seq와 평균 sess_seq는 반비례 관계일 것이라 가정하고 이를 확인 해 보았다.
+sm%>%group_by(clac2_nm)%>%summarise(mean_hits_seq=mean(hits_seq, na.rm=T), mean_sess_seq=mean(sess_seq, na.rm=T))%>%ggplot(aes(mean_hits_seq, mean_sess_seq))+geom_point(alpha=1/3)+geom_smooth(method="lm")
+a<-sm%>%group_by(clac2_nm)%>%summarise(mean_hits_seq=mean(hits_seq, na.rm=T), mean_sess_seq=mean(sess_seq, na.rm=T))
+cor(a$mean_hits_seq, a$mean_sess_seq)
+summary(lm(data=a, mean_hits_seq~mean_sess_seq))
+# 별로 관계가 없다고 볼 수 있다. mean_sess_seq가 높을 수 록 한번에 상품을 많이 구매한다고 가정해 보았다.(아웃도어/레저 상품 제외)
+sm%>%group_by(clac2_nm)%>%summarise(mean_pd_buy_ct=mean(pd_buy_ct, na.rm = T), mean_sess_seq=mean(sess_seq, na.rm = T))%>%filter(mean_sess_seq<300)%>%ggplot(aes(mean_sess_seq, mean_pd_buy_ct))+geom_point(alpha=1/3)+geom_smooth(method = "lm")
+a<-sm%>%group_by(clac2_nm)%>%summarise(mean_pd_buy_ct=mean(pd_buy_ct, na.rm = T), mean_sess_seq=mean(sess_seq, na.rm = T))%>%filter(mean_sess_seq<300)
+summary(lm(data=a, mean_sess_seq~mean_pd_buy_ct))
+# 이 둘도 관계가 별로 없음을 볼 수 있다.
+
+
+# 상품별 평균 총 페이지 건수를 그리고 상품별 평균 hits_seq와 비교하였다. 
+a<-sm%>%group_by(clac2_nm)%>%summarise(mean_tot_pag=mean(tot_pag_view_ct, na.rm=T))%>%ggplot(aes(clac2_nm))+geom_bar(aes(weight=mean_tot_pag))
+b<-sm%>%group_by(clac2_nm)%>%summarise(mean_hits_seq=mean(hits_seq, na.rm=T))%>%ggplot(aes(clac2_nm))+geom_bar(aes(weight=mean_hits_seq))
+grid.arrange(a,b,ncol=1)
+sm%>%group_by(clac2_nm)%>%summarise(mean_tot_pag=mean(tot_pag_view_ct, na.rm=T),mean_hits_seq=mean(hits_seq, na.rm=T))%>%ggplot(aes(mean_hits_seq,mean_tot_pag))+geom_point(alpha=1/3)+geom_smooth(method="lm")
+a<-sm%>%group_by(clac2_nm)%>%summarise(mean_tot_pag=mean(tot_pag_view_ct, na.rm=T),mean_hits_seq=mean(hits_seq, na.rm=T))
+summary(lm(data=a,mean_tot_pag~mean_hits_seq))
+# hits_seq와 tot_pag_view_ct는 선형관계임을 알 수 있다. 따라서 tot_pag_view_ct는 다른 변수와 상관관계를 살펴보지 않았다.(hits_seq와 같다고 가정)
+
+# 상품군별로 총 세션시간의 평균값이 차이가 있나?
+sm%>%group_by(clac2_nm)%>%summarise(mean_sess_hr=mean(tot_sess_hr_v, na.rm=T))%>%ggplot(aes(clac2_nm))+geom_bar(aes(weight=mean_sess_hr))
+# 차이가 있다.
+
+# 세션 내 총시간값이 3시간이 넘는 경우를 살펴보았다.
+head(sm%>%group_by(clac2_nm)%>%summarise(mean_sess_hr=mean(tot_sess_hr_v, na.rm=T))%>%filter(mean_sess_hr>1800)%>%arrange(desc(mean_sess_hr)))
+# 주로 향수, 의류, 선물세트를 오랫동안 고른다고 가정해 볼 수 있다. 평균 hits_seq와 세션 내 총시간은 양의 상관관계를 가질 것이라고 가정하고 살펴보았다.
+sm%>%group_by(clac2_nm)%>%summarise(mean_sess_hr=mean(tot_sess_hr_v, na.rm=T),mean_hits_seq=mean(hits_seq, na.rm=T))%>%ggplot(aes(mean_hits_seq,mean_sess_hr))+geom_point(alpha=1/3)+geom_smooth(method="lm")
+a<-sm%>%group_by(clac2_nm)%>%summarise(mean_sess_hr=mean(tot_sess_hr_v, na.rm=T),mean_hits_seq=mean(hits_seq, na.rm=T))
+summary(lm(data=a,mean_sess_hr~mean_hits_seq))
+# 둘은 양의 상관관계가 있다고 가정 할 수 있다. hits_seq와 tot_sess_hr_v가 높을 수록 해당 카테고리를 구매하기 위해 더 많은 고민을 하고, 더 오랜 시간을 투자한다는 것을 볼 수 있다.
+# 위의 그래프에서 이상점 3개에 대해 자세히 살펴보았다.
+sm%>%group_by(clac2_nm)%>%summarise(mean_sess_hr=mean(tot_sess_hr_v, na.rm=T),mean_hits_seq=mean(hits_seq, na.rm=T))%>%filter(mean_sess_hr>2000, mean_hits_seq<80)
+# 축산 선물세트와 향수의 경우 세션에 머무는 시간을 길지만 상대적으로 hits_seq는 적음을 볼 수 있다. 한 가지 상품을 오래 고민하는 것이라고(혹은 리뷰를 읽는다던지) 추측해 볼 수 있다.
+
+# hits_seq와 tot_sess_hr_v도 선형관계임을 알 수 있다. 따라서 tot_sess_hr_v도 다른 변수와 상관관계를 살펴보지 않았다.(hits_seq와 같다고 가정)
+
+# 기기유형 분포
+ggplot(ses, aes(dvc_ctg_nm))+geom_bar()
+# 모바일 이용자가 가장 많다.
+
+# 기기 유형 별 sess_seq분포
+ggplot(ses, aes(sess_seq, y=..density..))+geom_freqpoly()+facet_wrap(~dvc_ctg_nm)
+# sess_seq가 0 이하인 경우를 확인해 보았다.
+ses%>%filter(sess_seq<=0)%>%arrange(sess_seq)
+# 그래프에서는 나타나지만 확인 결과 없는 것을 볼 수 있다. 
+
+# 그래프에서 꼬리가 긴 부분을 확대하여 살펴보았다.
+ggplot(ses, aes(sess_seq, y=..density..))+geom_freqpoly()+facet_wrap(~dvc_ctg_nm)+xlim(2000, NA)
+# desktop의 경우 해당 되는 부분이 없고, mobile과 tablet의 경우 ses_seq가 2000이상 인 case가 있다. mobile과 tablet은 웹이나 앱을 켠 후 종료하지 않는 경우가 있어 sess_seq가 누적되는 것으로 추측 해 볼 수 있다.
+
+# 기기 유형 별 hits_seq분포
+ggplot(sm, aes(hits_seq, y=..density..))+geom_freqpoly()+facet_wrap(~dvc_ctg_nm)
+# 모바일과 tablet이 전체적으로 hits_seq가 좀 더 높음을 볼 수 있다.
+
+
+
+
+
+```
+
