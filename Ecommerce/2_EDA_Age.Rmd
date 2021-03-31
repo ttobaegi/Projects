@@ -1,0 +1,106 @@
+---
+title: "trend_analysis"
+author: "JIIN"
+date: "2019년 1월 12일"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(gridExtra)
+library(readr)
+setwd("C:\\Users\\USER\\Documents\\Github\\Lpoint")
+trend<-read_csv("trend_df.csv",guess_max=76234)
+
+```
+
+
+
+```{r cars}
+
+```
+
+
+```{r pressure, echo=TRUE}
+# 나이 - 월별 - 상품군
+age <-trend %>%
+ select(clnt_gender, clnt_age, 
+clnt_id, sess_id,clac1_nm, clac2_nm, month, zon_nm)
+age %>% count(clnt_gender, clnt_age, clnt_id, sess_id,clac1_nm, month) %>%
+group_by(month,clac1_nm, clnt_age) %>%
+summarise(n=n()) 
+
+age1 <- age %>% count(clnt_gender, clnt_age, clnt_id, sess_id,clac1_nm, month) %>%
+group_by(month,clac1_nm, clnt_age) %>%
+summarise(n=n()) 
+
+#월별 - 연령대별 건수 상위 3품목 
+a1 <-
+age1 %>% ungroup() %>% 
+group_by(month,clnt_age) %>% 
+filter(rank(desc(n))<=5) %>% arrange(month,clnt_age) 
+a1$clnt_age <- as.factor(a1$clnt_age)
+
+# 10대 특이점
+# 다른 연령대에 비해 월별 선호 상품군 순위변동 있는 편
+# 시즌스포츠
+# 5,6월 퍼스널케어와 
+# 3,4,5월 속옷양말홈웨어
+# 9월 스포츠패션
+a1 <- a1 %>% filter(clnt_age=="10") %>%
+ggplot(aes(x=reorder(clac1_nm,n),n)) +geom_bar(stat="identity") + facet_wrap(~month) +
+theme(axis.text.x = element_text(angle = 45))+
+ggtitle("10대 월별 상품군 수요 TOP 5")+ 
+labs(x=NULL)
+
+# 20대 특이점
+# 월별 선호 상품군 순위변동 없다.
+a2 <- a1 %>% filter(clnt_age=="20") %>%
+ggplot(aes(x=reorder(clac1_nm,n),n)) +geom_bar(stat="identity") + facet_wrap(~month) +
+theme(axis.text.x = element_text(angle = 45))+
+ggtitle("20대 월별 상품군 수요 TOP 5")+ 
+labs(x=NULL)
+
+# 30대 특이점
+# 유아동의류 상위권
+# 상품군간 구매건수 차이 크지 않다
+# 8월 속옷양말홈웨어
+a3 <- a1 %>% filter(clnt_age=="30") %>%
+ggplot(aes(x=reorder(clac1_nm,n),n)) +geom_bar(stat="identity") + facet_wrap(~month) +
+theme(axis.text.x = element_text(angle = 45))+
+ggtitle("30대 월별 상품군 수요 TOP 5")+ 
+labs(x=NULL)
+
+# 40대 특이점
+# 월별 선호 상품군 순위변동 없다.
+# 10,20,30대 1위였던 화장품/뷰티케어 여전히 상위권이지만 순위 낮아짐
+a4 <- a1 %>% filter(clnt_age=="40") %>%
+ggplot(aes(x=reorder(clac1_nm,n),n)) +geom_bar(stat="identity") + facet_wrap(~month) +
+theme(axis.text.x = element_text(angle = 45))+
+ggtitle("40대 월별 상품군 수요 TOP 5")+ 
+labs(x=NULL)
+
+# 50대 특이점
+# 월별 선호 상품군 순위변동 없다.
+# 40대와 순위 동일하지만, 여성의류 구매건수 거의 2배
+a5 <- a1 %>% filter(clnt_age=="50") %>%
+ggplot(aes(x=reorder(clac1_nm,n),n)) +geom_bar(stat="identity") + facet_wrap(~month) +
+theme(axis.text.x = element_text(angle = 45))+
+ggtitle("50대 월별 상품군 수요 TOP 5")+ 
+labs(x=NULL)
+
+# 60대 특이점
+# 건강식품 순위권
+# 구매건수가 다른 연령대에 비해 현저히 적음
+a6 <- a1 %>% filter(clnt_age=="60") %>%
+ggplot(aes(x=reorder(clac1_nm,n),n)) +geom_bar(stat="identity") + facet_wrap(~month) +
+theme(axis.text.x = element_text(angle = 45))+
+ggtitle("60대 월별 상품군 수요 TOP 5")+ 
+labs(x=NULL)
+
+grid.arrange(a1,a2,nrow=2)
+grid.arrange(a3,a4,nrow=2)
+grid.arrange(a5,a6,nrow=2)
+
+```
