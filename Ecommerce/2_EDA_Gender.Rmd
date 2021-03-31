@@ -1,0 +1,129 @@
+---
+title: "trend_analysis"
+author: "JIIN"
+date: "2019년 1월 12일"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(gridExtra)
+library(readr)
+setwd("C:\\Users\\USER\\Documents\\Github\\Lpoint")
+trend<-read_csv("trend_df.csv",guess_max=76234)
+
+```
+
+
+
+```{r cars}
+
+```
+
+
+```{r pressure, echo=TRUE}
+
+gender <- trend %>% filter(!is.na(clnt_gender)) %>%
+count(clnt_gender, clnt_id, sess_id,clac1_nm, month, cluster) %>%
+group_by(month,clac1_nm, clnt_gender, cluster) %>%
+summarise(n=n())
+gender
+
+# 성별 상품군 - 대분류 CLAC1_NM
+# 여성
+# 여성의류-패션잡화-화장품/뷰티케어 
+# 6개월간 순위 변동 없음
+gender %>% ungroup() %>% 
+filter(clnt_gender=="F") %>% group_by(month)%>% filter(rank(desc(n))<=5) %>%
+arrange(desc(n))
+
+# 남성
+# 남성의류 - 스포츠패션- 패션잡화
+# 큰순위 변동 없음 
+gender %>% ungroup() %>% 
+filter(clnt_gender=="M") %>% group_by(month) %>%filter(rank(desc(n))<=5) %>% arrange(desc(n))
+
+# 중분류로 살펴보자
+gender2 <- trend %>% filter(!is.na(clnt_gender)) %>%
+count(clnt_gender, clnt_id, sess_id,clac2_nm, month, cluster) %>% 
+group_by(month, clac2_nm, clnt_gender, cluster) %>%
+summarise(n=n())
+
+# 성별 상품군 - 중분류
+# 여성
+# 남성의류상의 - 메이크업- 여성의류상의
+# 7월 계절요인 - 수영/물놀이 
+gender2%>% ungroup() %>% 
+filter(clnt_gender=="F") %>% group_by(month)%>% filter(rank(desc(n))<=5) %>% arrange(desc(n)) %>% print(n=30)
+
+# 남성
+# 주로 의류, 스포츠의류, 스포츠화
+# 7월 8월 계절요인 - 수영/물놀이 
+# 9월 - 홍삼/인삼가공식품
+gender2%>% ungroup() %>% 
+filter(clnt_gender=="M") %>% group_by(month) %>%filter(rank(desc(n))<=5) %>% arrange(desc(n)) %>% print(n=30)
+
+
+# 월별 성별에 따른 상품군 수요 TOP5
+g1 <- gender %>% ungroup() %>% 
+group_by(month, clnt_gender) %>% 
+filter(rank(desc(n))<=5) 
+
+m1 <- g1 %>% filter(month=="04") %>%
+ggplot(aes(clac1_nm,n)) +geom_bar(stat="identity") + facet_wrap(~clnt_gender) +
+theme(axis.text.x = element_text(angle = 45))+
+ggtitle("4월 성별 상품군 수요 TOP 5")+ 
+labs(x=NULL)
+m2 <- g1 %>% filter(month=="05") %>%
+ggplot(aes(clac1_nm,n)) +geom_bar(stat="identity") + facet_wrap(~clnt_gender)+
+theme(axis.text.x = element_text(angle = 45))+
+ggtitle("5월 성별 상품군 수요 TOP 5")+ 
+labs(x=NULL)
+m3 <- g1 %>% filter(month=="06") %>%
+ggplot(aes(clac1_nm,n)) +geom_bar(stat="identity") + facet_wrap(~clnt_gender)+
+theme(axis.text.x = element_text(angle = 45))+
+ggtitle("6월 성별 상품군 수요 TOP 5")+ 
+labs(x=NULL)
+m4 <- g1 %>% filter(month=="07") %>%
+ggplot(aes(clac1_nm,n)) +geom_bar(stat="identity") + facet_wrap(~clnt_gender)+
+theme(axis.text.x = element_text(angle = 45))+
+ggtitle("7월 성별 상품군 수요 TOP 5")+ 
+labs(x=NULL)
+m5 <- g1 %>% filter(month=="08") %>%
+ggplot(aes(clac1_nm,n)) +geom_bar(stat="identity") + facet_wrap(~clnt_gender)+
+theme(axis.text.x = element_text(angle = 45)) +
+ggtitle("8월 성별 상품군 수요 TOP 5")+ 
+labs(x=NULL)
+m6 <- g1 %>% filter(month=="09") %>%
+ggplot(aes(clac1_nm,n)) +geom_bar(stat="identity") + facet_wrap(~clnt_gender) +
+theme(axis.text.x = element_text(angle = 45))+
+ggtitle("9월 성별 상품군 수요 TOP 5")+ 
+labs(x=NULL)
+
+grid.arrange(m1,m2,nrow=2)
+grid.arrange(m3,m4,nrow=2)
+grid.arrange(m5,m6,nrow=2)
+
+
+# 지역
+# 성별 - 이용자 분포
+gender_dist <- 
+trend %>% filter(!is.na(clnt_gender)) %>% 
+count(clnt_id,clnt_gender,zon_nm) %>% group_by(clnt_gender,zon_nm) %>% 
+summarise(n=sum(n))
+gender_dist %>% arrange(desc(n)) 
+# 여성이용자 월등히 많음
+gender_dist %>% ggplot(aes(clnt_gender,n))+geom_bar(stat="identity")
+
+# 지역별 - 월별
+area <- trend %>% 
+count(zon_nm, clnt_id, sess_id,clac1_nm, month)
+area %>% count(zon_nm) %>% filter(rank(desc(nn))<=10)
+
+
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
