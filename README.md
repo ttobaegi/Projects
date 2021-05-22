@@ -2,6 +2,7 @@
 
 ### 1. Document-based Recommender system for Book
         - WebCrawler (text, image)
-        -
+        - Doc2Vec
+
 ### 2. BigData Competition(Ecommerce)
         - Customer web log data
