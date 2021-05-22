@@ -1,8 +1,8 @@
-## Projects (2020)
+#### Projects (2020)
 
-### 1. Document-based Recommender system for Book
+##### 1. Document-based Recommender system for Book
         - WebCrawler (text, image)
         - Doc2Vec
 
-### 2. BigData Competition(Ecommerce)
+##### 2. BigData Competition(Ecommerce)
         - Customer web log data
