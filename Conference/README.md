@@ -8,7 +8,7 @@
   
 * 데이터 수집 및 전처리 WebCrawler (text, image)
 > * **베스트 셀러 & 스테디 셀러 각 카테고리 별 2018년도의 베스트셀러, 스테디 셀러 약 2000권의 책** (경제 경영, 과학, 대학교재/전문서적, 소설/시/희곡, 어린이, 에세이, 자기계발)
-> 1. [text 크롤링 코드] 
+> 1. [text 크롤링 코드](https://nbviewer.jupyter.org/github/ttobaegi/Projects/blob/main/Conference/1_CRAWLING_text.ipynb)
 > 2. [image 크롤링 코드](https://nbviewer.jupyter.org/github/ttobaegi/Projects/blob/main/Conference/1_CRAWLING_img_crawl.ipynb)
 * 모델링
 > 1. [Word2Vec](https://nbviewer.jupyter.org/github/ttobaegi/Projects/blob/main/Conference/3_MODELING_WordEmb.ipynb)
