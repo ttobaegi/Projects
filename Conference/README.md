@@ -12,6 +12,5 @@
 > 2. [image 크롤링 코드](https://nbviewer.jupyter.org/github/ttobaegi/Projects/blob/main/Conference/1_CRAWLING_img_crawl.ipynb)
 * 모델링
 > 1. [Word2Vec](https://nbviewer.jupyter.org/github/ttobaegi/Projects/blob/main/Conference/3_MODELING_WordEmb.ipynb)
-> 2. [Doc2Vec](https://nbviewer.jupyter.org/github/ttobaegi/Projects/blob/main/Conference/3_MODELING.ipynb)
-> 3. [Clustering](https://nbviewer.jupyter.org/github/ttobaegi/Projects/blob/main/Conference/3_MODELING_Clustering.ipynb)  
+> 2. [Doc2Vec + Clustering](https://nbviewer.jupyter.org/github/ttobaegi/Projects/blob/main/Conference/3_MODELING_Clustering.ipynb)  
      
