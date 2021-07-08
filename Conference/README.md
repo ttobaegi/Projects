@@ -7,10 +7,22 @@
 > [Slideshare](https://www.slideshare.net/BOAZbigdata/11-boaz-boaz)
   
 * 데이터 수집 및 전처리 WebCrawler (text, image)
-> * **베스트 셀러 & 스테디 셀러 각 카테고리 별 2018년도의 베스트셀러, 스테디 셀러 약 2000권의 책** (경제 경영, 과학, 대학교재/전문서적, 소설/시/희곡, 어린이, 에세이, 자기계발)
-> 1. [text 크롤링 코드](https://nbviewer.jupyter.org/github/ttobaegi/Projects/blob/main/Conference/1_CRAWLING_text.ipynb)
-> 2. [image 크롤링 코드](https://nbviewer.jupyter.org/github/ttobaegi/Projects/blob/main/Conference/1_CRAWLING_img_crawl.ipynb)
-* 모델링
-> 1. [Word2Vec](https://nbviewer.jupyter.org/github/ttobaegi/Projects/blob/main/Conference/3_MODELING_WordEmb.ipynb)
-> 2. [Doc2Vec + Clustering](https://nbviewer.jupyter.org/github/ttobaegi/Projects/blob/main/Conference/3_MODELING_Clustering.ipynb)  
-     
+
+> - **데이터 수집 및 전처리** [`Crawling Code (Python)`](https://gist.github.com/ttobaegi/21828c6952c7cf8249f738b1f7d5449b)
+>    - 데이터 출처 및 선정 이유 : 알라딘, 실제 책 속의 문장문단 인용문과 구매자 분포 파악 가능 
+>    - 데이터 수집 : 7개 카테고리 내 2018년 베스트셀러 & 스테디셀러의 책 데이터 크롤링
+>      (경제 경영, 과학, 대학교재/전문서적, 소설/시/희곡, 어린이, 에세이, 자기계발)
+>        - 텍스트 : 책 기본정보, 지은이, 인용문(책속에서), 구매자 분포
+>        - 이미지 : 책 표지
+>        
+> - **모델링** [`Modeling Code (Python)`](https://gist.github.com/ttobaegi/b123f2a714642f958a94157b83cd38e4)  
+>    - Tokenizer : Komoran     
+>    - Training algorithm : **Distributed memory PV-DM** 
+>        - Distributed Memory model preserves the word order in a document whereas Distributed Bag of words just uses the bag of words approach, which doesn’t preserve any word order. 
+>        
+>     ```
+>     from konlpy.tag import Komoran
+>     from gensim.models.doc2vec import Doc2Vec, TaggedDocument
+>     ```
+
+
