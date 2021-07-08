@@ -19,9 +19,14 @@
 >        - 이미지 : 책 표지
 >        
 > - **모델링** [`Modeling Code (Python)`](https://gist.github.com/ttobaegi/b123f2a714642f958a94157b83cd38e4)  
->    - Tokenizer : Komoran     
+>    - Tokenizer : Komoran 
+>    
+>       ⇒ 형태소 분석기 중 속도가 빠른 Komoran 사용   
 >    - Training algorithm : **Distributed memory PV-DM** 
+>    
+>       ⇒ 유사한 내용의 도서 추천이 목적이므로 문맥 고려하는 Distributed Memory Model 사용
 >        - Distributed Memory model preserves the **word order in a document** whereas Distributed Bag of words just uses the bag of words approach, which doesn’t preserve any word order. 
+>
 >        
 >     ```
 >     from konlpy.tag import Komoran
